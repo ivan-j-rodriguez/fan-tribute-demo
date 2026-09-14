@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta name="theme-color" content="#06141c" />
+  <title>Tales of Tribute — Fan Table</title>
+  <link rel="stylesheet" href="css/style.css?v=49" />
+  <link rel="stylesheet" href="css/phone-eso.css?v=49" />
+  <link rel="stylesheet" href="css/table-pack.css?v=49" />
+  <link rel="stylesheet" href="css/board-pass.css?v=49" />
+  <link rel="stylesheet" href="css/club-chrome.css?v=49" />
+</head>
+<body>
+  <div id="app">
+    <!-- SPLASH -->
+    <section id="splash" class="screen active">
+      <div class="hi-veil" aria-hidden="true"></div>
+      <div class="splash-frame hi-frame">
+        <p class="hi-kicker">High Isle · Roister’s Club</p>
+        <h1>Tales of Tribute</h1>
+        <p class="subtitle">Two patrons, a tavern of five, forty prestige.</p>
+        <div class="splash-purse" id="splash-purse"></div>
+        <p class="tutorial-nudge" id="tutorial-nudge" hidden>
+          New here? Play a short tutorial match.
+          <button type="button" class="primary" id="btn-nudge-tutorial">Play tutorial</button>
+          <button type="button" id="btn-nudge-skip">Skip</button>
+        </p>
+        <div class="actions splash-actions">
+          <div class="splash-primary">
+            <button class="primary splash-play" id="btn-play">Play vs AI</button>
+            <button type="button" id="btn-tutorial">Tutorial</button>
+          </div>
+          <div class="splash-compete">
+            <button class="ranked-btn" id="btn-ranked">Ranked</button>
+            <button id="btn-friend">Play a Friend</button>
+          </div>
+          <div class="splash-club-row">
+            <button class="primary store-btn" id="btn-splash-store">Store</button>
+            <button id="btn-splash-collection">Collection</button>
+            <button id="btn-club">Club</button>
+          </div>
+          <div class="splash-more">
+            <button class="ghost" id="btn-gauntlet">Provinces</button>
+            <button class="ghost" id="btn-ency">Encyclopedia</button>
+            <button class="ghost" id="btn-settings">Settings</button>
+            <button class="ghost" id="btn-splash-account">Sign in</button>
+          </div>
+        </div>
+        <div class="splash-toggles">
+          <label class="chk"><input type="checkbox" id="chk-hourglass-splash" /> Hourglass (90s)</label>
+          <button type="button" id="btn-music" class="music-toggle" title="Music">♪ Music: Off</button>
+        </div>
+        <p class="build-stamp" id="build-stamp">build 49</p>
+      </div>
+    </section>
+
+    <!-- RANKED — own PvP lobby, never vs AI -->
+    <section id="ranked" class="screen ranked-screen">
+      <header class="club-header">
+        <h2>Ranked</h2>
+        <button id="btn-ranked-back">Back</button>
+      </header>
+      <div class="ranked-crest" id="ranked-crest"></div>
+      <p class="hint ranked-copy">Host or join a room. Hourglass on. No AI.</p>
+      <div id="ranked-status" class="ranked-status"></div>
+      <div class="ranked-actions">
+        <button class="primary" id="btn-ranked-host">Host ranked room</button>
+        <div class="join-row">
+          <input id="ranked-join-code" maxlength="4" placeholder="CODE" autocomplete="off" />
+          <button id="btn-ranked-join">Join ranked</button>
+        </div>
+      </div>
+      <label class="chk settings-row" id="voice-ranked-row">
+        <input type="checkbox" id="chk-voice-ranked" /> Voice chat (optional)
+      </label>
+      <p class="hint" id="voice-ranked-hint">Off by default. Asks for the mic only when you turn it on. Mute anytime.</p>
+      <p class="hint" id="ranked-lobby-status"></p>
+    </section>
+
+    <!-- DECK PICK -->
+    <section id="deckpick" class="screen">
+      <h2>Choose Your Patrons</h2>
+      <p class="hint" id="deckpick-hint">Pick <strong>two</strong> patrons for you, then two for your rival — or let the AI finish.</p>
+      <div class="pick-meters">
+        <div class="pick-meter you" id="pick-you-meter"><span class="pm-label">You</span> <span class="pm-count" id="pick-you-count">0 / 2</span><div class="pm-slots" id="pick-you-slots"></div></div>
+        <div class="pick-meter rival" id="pick-opp-meter"><span class="pm-label">Rival</span> <span class="pm-count" id="pick-opp-count">0 / 2</span><div class="pm-slots" id="pick-opp-slots"></div></div>
+      </div>
+      <div class="deckpick-modes">
+        <label class="chk"><input type="checkbox" id="chk-random-match" /> Random from unlocked</label>
+        <label class="chk"><input type="checkbox" id="chk-hourglass-pick" /> Hourglass</label>
+        <div class="diff-inline" id="diff-pick-wrap">
+          <span class="diff-label">AI <span id="diff-val-pick">5</span></span>
+          <div class="diff-slider" id="diff-slider-pick" role="slider" aria-valuemin="1" aria-valuemax="10" aria-valuenow="5" tabindex="0"></div>
+        </div>
+      </div>
+      <div class="patron-grid" id="patron-grid"></div>
+      <div class="deckpick-bar">
+        <span id="pick-status">You 0 / Rival 0</span>
+        <button id="btn-random-match">Random Match</button>
+        <button id="btn-ai-rest">AI takes the rest</button>
+        <button class="primary" id="btn-start" disabled>Begin Match</button>
+        <button id="btn-back-splash">Back</button>
+      </div>
+    </section>
+
+
+    <!-- GAUNTLET / Road of Tamriel -->
+    <section id="gauntlet" class="screen">
+      <header class="club-header">
+        <h2>Challenge the Provinces</h2>
+        <button id="btn-gauntlet-back">Back</button>
+      </header>
+      <p class="hint" id="gauntlet-hint">Start at Gonfalon Bay. Win opens the next stop. A loss locks the road until midnight ET.</p>
+      <div class="gauntlet-map-wrap">
+        <img class="gauntlet-map" id="gauntlet-map-img" src="assets/ui/tamriel-map.jpg" alt="Map of Tamriel — provinces" />
+        <div class="gauntlet-markers" id="gauntlet-markers"></div>
+        <div id="road-traveler" class="road-traveler" hidden>🐎</div>
+      </div>
+      <div class="gauntlet-status" id="gauntlet-status"></div>
+      <div class="gauntlet-actions">
+        <button class="primary" id="btn-gauntlet-play" disabled>Play next stop</button>
+      </div>
+    </section>
+
+    <!-- FRIEND -->
+    <section id="friend-lobby" class="screen">
+      <h2>Play a Friend</h2>
+      <p class="hint">Pass-and-play on one device, or host/join a remote room.</p>
+      <div class="friend-modes">
+        <button class="primary" id="btn-hotseat">Pass &amp; Play (Hotseat)</button>
+        <button id="btn-host-room">Host Remote Room</button>
+        <div class="join-row">
+          <input id="join-code" maxlength="4" placeholder="CODE" />
+          <button id="btn-join-room">Join Room</button>
+        </div>
+        <label class="chk settings-row" id="voice-friend-row">
+          <input type="checkbox" id="chk-voice-friend" /> Voice chat (optional)
+        </label>
+        <p class="hint" id="voice-friend-hint">Off by default. Mic permission only if you enable it. Hotseat has no voice.</p>
+        <p class="hint" id="friend-status"></p>
+        <button id="btn-friend-back">Back</button>
+      </div>
+    </section>
+
+    <!-- CLUB -->
+    <section id="club" class="screen">
+      <header class="club-header">
+        <h2>Roister’s Club</h2>
+        <button id="btn-club-back">Back</button>
+      </header>
+      <div class="club-stats" id="club-stats"></div>
+      <div class="club-actions">
+        <button class="primary" id="btn-store">Store</button>
+        <button id="btn-collection">Collection</button>
+      </div>
+      <div class="club-block">
+        <h3 class="club-section">Login calendar</h3>
+        <p class="hint">Midnight ET. Missed days mark a red X.</p>
+        <div id="club-calendar" class="login-cal"></div>
+      </div>
+      <div class="club-block">
+        <h3 class="club-section">Provinces road</h3>
+        <div id="club-road" class="season-banner"></div>
+      </div>
+      <div class="club-block">
+        <h3 class="club-section">Ranked</h3>
+        <div id="club-ranked"></div>
+      </div>
+      <div class="club-block">
+        <h3 class="club-section">Fan tournament</h3>
+        <div id="club-tournament" class="season-banner"></div>
+      </div>
+      <div class="club-block">
+        <h3 class="club-section">Weekly Challenges</h3>
+        <p class="hint" id="club-weekly-hint"></p>
+        <div id="club-weekly" class="ach-list"></div>
+      </div>
+      <div class="club-block">
+        <h3 class="club-section">Seasonal</h3>
+        <div id="club-seasonal"></div>
+      </div>
+      <div class="club-block">
+        <h3 class="club-section">Daily</h3>
+        <div id="club-daily"></div>
+      </div>
+      <div class="club-block">
+        <h3 class="club-section">Achievements</h3>
+        <div id="club-achievements" class="ach-list"></div>
+      </div>
+    </section>
+
+    <!-- STORE -->
+    <section id="store" class="screen">
+      <header class="club-header">
+        <h2>Club Store</h2>
+        <span class="store-gold" id="store-gold"></span>
+        <button id="btn-store-back">Back</button>
+      </header>
+      <p class="hint" id="store-hint">Today’s shop — rotating stock, purse gold.</p>
+      <p class="store-timer" id="store-timer"></p>
+      <nav class="store-nav" aria-label="Store sections">
+        <a href="#store-featured-block">Featured</a>
+        <a href="#store-daily-block">Daily stock</a>
+        <a href="#store-fragments-block">Fragments</a>
+        <a href="#store-cosmetics-block">Cosmetics</a>
+      </nav>
+      <section class="store-section" id="store-featured-block">
+        <h3 class="club-section">Featured · Bundles</h3>
+        <div id="store-bundle"></div>
+        <div id="store-featured-hero"></div>
+      </section>
+      <section class="store-section" id="store-daily-block">
+        <h3 class="club-section">Daily stock</h3>
+        <div class="store-grid" id="store-featured"></div>
+      </section>
+      <section class="store-section" id="store-fragments-block">
+        <h3 class="club-section">Fragments</h3>
+        <div class="store-grid" id="store-fragments"></div>
+      </section>
+      <section class="store-section" id="store-cosmetics-block">
+        <h3 class="club-section">Cosmetics</h3>
+        <div class="store-grid" id="store-cosmetics"></div>
+      </section>
+      <section class="store-section" id="store-tomorrow-block">
+        <h3 class="club-section">Tomorrow’s preview</h3>
+        <div class="store-grid" id="store-tomorrow"></div>
+      </section>
+      <div class="store-grid" id="store-later" hidden></div>
+      <p class="store-footnote">Purse gold only</p>
+    </section>
+
+    <!-- COLLECTION -->
+    <section id="collection" class="screen">
+      <header class="club-header">
+        <h2>Collection</h2>
+        <button id="btn-collection-back">Back</button>
+      </header>
+      <div class="coll-tabs" role="tablist">
+        <button type="button" class="coll-tab active" data-tab="patrons">Patrons / Decks</button>
+        <button type="button" class="coll-tab" data-tab="clues">Card Clues</button>
+        <button type="button" class="coll-tab" data-tab="upgrades">Upgrades</button>
+      </div>
+      <p class="hint" id="collection-hint"></p>
+      <div id="collection-patrons">
+        <div class="patron-grid" id="collection-grid"></div>
+        <div id="collection-detail" class="collection-detail hidden"></div>
+      </div>
+      <div id="collection-clues" hidden>
+        <div class="store-grid" id="clue-grid"></div>
+      </div>
+      <div id="collection-cosmetics" hidden>
+        <h3 class="club-section">Patron fragments</h3>
+        <div class="store-grid" id="coll-frags"></div>
+        <h3 class="club-section">Table designs</h3>
+        <div class="store-grid" id="coll-skins"></div>
+        <h3 class="club-section">Card backs</h3>
+        <div class="store-grid" id="coll-backs"></div>
+        <h3 class="club-section">Card upgrades owned</h3>
+        <div class="collection-cards" id="coll-upgrades"></div>
+      </div>
+    </section>
+
+
+    <!-- SETTINGS -->
+    <section id="settings" class="screen">
+      <header class="club-header">
+        <h2>Settings</h2>
+        <button id="btn-settings-back">Back</button>
+      </header>
+      <p class="hint">Table options. Equip cosmetics in Collection. New pieces appear in the Store.</p>
+      <div class="settings-block" id="settings-account">
+        <h3 class="club-section">Account</h3>
+        <p class="hint" id="settings-account-hint"></p>
+        <button type="button" class="settings-row-btn primary" id="btn-settings-account">Sign in / Sign up</button>
+        <button type="button" class="settings-row-btn" id="btn-settings-signout" hidden>Sign out</button>
+      </div>
+      <div class="settings-block" id="settings-permissions">
+        <h3 class="club-section">Permissions</h3>
+        <p class="hint">Asked only when needed. Nothing is on by default.</p>
+        <label class="chk settings-row"><input type="checkbox" id="chk-settings-mic" /> Microphone
+          <span class="hint-inline">Optional 1:1 voice in Friend/Ranked. The browser asks only when you enable voice.</span>
+        </label>
+        <p class="hint" id="settings-perm-auth">Sign-in: email is local or Club cloud. Google/Apple/Phone stay off until those providers are enabled — we do not request those scopes in advance.</p>
+      </div>
+      <div class="settings-block">
+        <h3 class="club-section">Table</h3>
+        <label class="chk settings-row"><input type="checkbox" id="chk-settings-music" /> Music</label>
+        <label class="chk settings-row sfx-mute-row"><input type="checkbox" id="chk-settings-sfx" /> Sound effects</label>
+        <label class="settings-row sfx-row">SFX style
+          <select id="sel-sfx">
+            <option value="table">Card table</option>
+            <option value="dramatic">Dramatic</option>
+          </select>
+        </label>
+        <label class="chk settings-row"><input type="checkbox" id="chk-settings-hourglass" /> Hourglass default (90s)</label>
+        <label class="chk settings-row" id="row-show-bot"><input type="checkbox" id="chk-settings-botcards" /> Show bot cards <span class="hint-inline">(vs AI coach mode — never in ranked/friend)</span></label>
+        <div class="settings-row diff-block">
+          <div class="diff-label">AI Difficulty <span id="diff-val-settings">5</span></div>
+          <div class="diff-slider" id="diff-slider-settings" role="slider" aria-valuemin="1" aria-valuemax="10" aria-valuenow="5" tabindex="0"></div>
+        </div>
+        <button type="button" id="btn-replay-tour" class="settings-row-btn">Replay tutorial</button>
+      </div>
+      <div class="settings-block" id="settings-about">
+        <h3 class="club-section">About</h3>
+        <p class="hint disclaimer" id="about-disclaimer">Unofficial fan-made table. Not affiliated with Bethesda Softworks, ZeniMax Online Studios, or The Elder Scrolls Online. Not for sale. No IAP.</p>
+        <p class="hint">Card art courtesy of UESP. Club beds are CC0: RandomMind (The Old Tower Inn, King’s Feast, Market Day), The Cynic Project / cynicmusic.com (A New Town), yd (Tavern), plus an original Night Harbor loop. See assets/audio/CREDITS.txt.</p>
+      </div>
+    </section>
+
+    <!-- MATCH — authentic board -->
+    <section id="match" class="screen skin-high-isle">
+      <div class="board-viewport">
+      <div class="board">
+        <aside class="events-rail" id="events-rail" aria-label="Played effects">
+          <div class="events-title">Played<br>Effects</div>
+          <div class="events-combo" id="events-combo"></div>
+          <div class="events-list" id="events-list"></div>
+        </aside>
+        <div class="board-main felt-table">
+          <div class="felt-hud-opp" aria-hidden="true"></div>
+          <button type="button" class="pile-btn hex-pile pile-opp-draw" id="pile-opp-draw" data-pile="opp-draw" title="Rival draw">
+            <span class="pile-stack" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="pile-count" id="cnt-opp-draw">0</span>
+            <span class="pile-label">Draw</span>
+          </button>
+          <button type="button" class="pile-btn hex-pile pile-opp-cd" id="pile-opp-cd" data-pile="opp-cooldown" title="Rival cooldown">
+            <span class="pile-stack pile-stack-cd" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="pile-count" id="cnt-opp-cd">0</span>
+            <span class="pile-label">Cooldown</span>
+          </button>
+          <button type="button" class="pile-btn hex-pile pile-opp-hand sr-pile" id="pile-opp-hand" data-pile="opp-hand" title="Rival hand">
+            <span class="pile-art card-back-face"></span>
+            <span class="pile-count" id="cnt-opp-hand">0</span>
+            <span class="pile-label">Hand</span>
+          </button>
+          <div class="felt-opp-hand">
+            <div class="hand-cards fan-hand rival-fan" id="opp-hand-zone"></div>
+          </div>
+          <div class="agents-row felt-opp-agents" id="opp-agents"></div>
+
+          <button type="button" class="pile-btn hex-pile pile-tavern-draw" id="pile-tavern-draw" data-pile="tavern-draw" title="Tavern deck">
+            <span class="pile-stack" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="pile-count" id="cnt-tavern-draw">0</span>
+            <span class="pile-label">Deck</span>
+          </button>
+          <div class="token-row rival-res res-hud" id="opp-res"></div>
+          <div class="turn-chip" id="turn-ind">Your turn</div>
+          <div class="felt-tavern">
+            <div class="tavern-band">
+              <div class="tavern-zone" id="tavern-zone"></div>
+            </div>
+          </div>
+          <div class="token-row you-res res-hud" id="you-res"></div>
+          <div class="felt-tools" hidden></div>
+
+          <div class="played-row felt-played" id="you-played"></div>
+          <div class="agents-row felt-you-agents" id="you-agents"></div>
+
+          <button type="button" class="pile-btn hex-pile pile-you-draw" id="pile-you-draw" data-pile="you-draw" title="Your draw">
+            <span class="pile-stack" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="pile-count" id="cnt-you-draw">0</span>
+            <span class="pile-label">Draw</span>
+          </button>
+          <button type="button" class="pile-btn hex-pile pile-you-cd" id="pile-you-cd" data-pile="you-cooldown" title="Your cooldown">
+            <span class="pile-stack pile-stack-cd" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="pile-count" id="cnt-you-cd">0</span>
+            <span class="pile-label">Cooldown</span>
+          </button>
+          <button type="button" class="pile-btn hex-pile pile-you-played sr-pile" id="pile-you-played" data-pile="you-played" title="Played this turn">
+            <span class="pile-art"></span>
+            <span class="pile-count" id="cnt-you-played">0</span>
+            <span class="pile-label">Played</span>
+          </button>
+          <div class="felt-you-hand">
+            <div class="hand-cards fan-hand you-fan" id="hand-zone"></div>
+          </div>
+          <div class="felt-hud-you">
+            <div class="match-actions you-actions">
+              <button type="button" id="btn-match-sfx" title="Mute sound effects">SFX</button>
+              <button type="button" id="btn-match-voice" title="Mute voice" hidden>Mic</button>
+              <button type="button" id="btn-match-settings" title="Settings">⚙</button>
+              <button type="button" id="btn-concede">Leave</button>
+            </div>
+          </div>
+        </div>
+        <aside class="patron-rail" id="patron-rail" aria-label="Patrons">
+          <div class="rail-patrons" id="rail-patrons"></div>
+          <div class="rail-glass">
+            <div class="patron-use-token opp" id="opp-patron-calls" title="Rival patron calls"></div>
+            <button type="button" id="btn-end" class="eso-hourglass-end" title="End turn">
+              <div class="hourglass" id="hourglass" data-on="0">
+                <svg viewBox="0 0 48 80" class="hg-svg" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="sandGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#f6e080"/>
+                      <stop offset="100%" stop-color="#b88620"/>
+                    </linearGradient>
+                    <linearGradient id="hgMetal" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#f4e6b8"/>
+                      <stop offset="45%" stop-color="#d4af37"/>
+                      <stop offset="100%" stop-color="#6a5018"/>
+                    </linearGradient>
+                    <clipPath id="sandClip">
+                      <path d="M12 10 H36 L26 38 L36 70 H12 L22 38 Z"/>
+                    </clipPath>
+                  </defs>
+                  <rect x="8" y="2" width="32" height="6" rx="1.5" fill="url(#hgMetal)"/>
+                  <rect x="8" y="72" width="32" height="6" rx="1.5" fill="url(#hgMetal)"/>
+                  <path class="hg-frame" d="M10 8 H38 V14 L27 38 L38 66 V72 H10 V66 L21 38 L10 14 Z" fill="none" stroke="url(#hgMetal)" stroke-width="2.4"/>
+                  <rect class="hg-sand-top" id="hg-sand-top" x="12" y="10" width="24" height="24" fill="url(#sandGrad)" clip-path="url(#sandClip)" opacity="0.92"/>
+                  <rect class="hg-sand-bot" id="hg-sand-bot" x="12" y="42" width="24" height="0" fill="url(#sandGrad)" clip-path="url(#sandClip)" opacity="0.95"/>
+                  <circle cx="24" cy="38" r="2" fill="#f0e6b8"/>
+                </svg>
+                <span class="hg-time" id="hg-time">—</span>
+              </div>
+              <span class="eso-end-caption">End Turn</span>
+            </button>
+            <div class="patron-use-token you" id="you-patron-calls" title="Your patron calls"></div>
+          </div>
+        </aside>
+      </div>
+      </div>
+      <div class="log-dock" id="log-dock"></div>
+      <div id="fly-layer" aria-hidden="true"></div>
+    </section>
+
+    <!-- ENCYCLOPEDIA -->
+    <section id="encyclopedia" class="screen">
+      <header>
+        <h2>Encyclopedia</h2>
+        <select id="ency-patron"></select>
+        <input id="ency-search" type="search" placeholder="Search cards…" />
+        <button id="btn-ency-back">Back</button>
+      </header>
+      <div class="ency-grid" id="ency-grid"></div>
+    </section>
+
+    <!-- OVERLAYS -->
+    <div class="overlay" id="win-overlay">
+      <div class="banner" id="win-banner"></div>
+    </div>
+    <div class="overlay" id="hand-device-overlay">
+      <div class="banner">
+        <p>Hand the device to the next player</p>
+        <button class="primary" id="btn-hand-done">Ready</button>
+      </div>
+    </div>
+    <div class="overlay" id="sack-overlay">
+      <div class="sack-modal hi-frame" id="sack-modal">
+        <div class="purse-stage" id="sack-anim">
+          <div class="purse-bag" id="purse-bag" aria-hidden="true"></div>
+        </div>
+        <div class="sack-rarity" id="sack-rarity"></div>
+        <div class="sack-reward" id="sack-reward"></div>
+        <button class="primary" id="btn-sack-close">Continue</button>
+      </div>
+    </div>
+    <div class="overlay" id="login-overlay">
+      <div class="login-modal hi-frame">
+        <h2>Daily stamp</h2>
+        <p class="hint">Stamp today. Two Crown Crates a month.</p>
+        <div id="login-cal" class="login-cal"></div>
+        <p class="hint" id="login-prize-hint"></p>
+        <button class="primary" id="btn-login-claim">Claim today’s stamp</button>
+        <button type="button" id="btn-login-later">Later</button>
+      </div>
+    </div>
+    <div class="overlay" id="crate-overlay">
+      <div class="crate-modal hi-frame" id="crate-modal">
+        <div class="crate-stage crate-closed" id="crate-stage">
+          <div class="crate-lid"></div>
+          <div class="crate-body"></div>
+        </div>
+        <div class="sack-rarity" id="crate-rarity"></div>
+        <div class="sack-reward" id="crate-reward"></div>
+        <button class="primary" id="btn-crate-open">Open Crown Crate</button>
+        <button id="btn-crate-close" hidden>Continue</button>
+      </div>
+    </div>
+    <div class="overlay" id="pile-overlay">
+      <div class="pile-modal">
+        <h3 id="pile-modal-title">Pile</h3>
+        <div class="pile-modal-grid" id="pile-modal-grid"></div>
+        <button id="btn-pile-close">Close</button>
+      </div>
+    </div>
+    <div class="target-overlay" id="target-banner" hidden>
+      <div class="target-veil" id="target-veil"></div>
+      <div class="target-sheet" id="target-sheet">
+        <h2 id="target-prompt">Choose a target</h2>
+        <div id="target-choices" class="target-choices"></div>
+        <div id="target-tray" class="target-tray"></div>
+        <div class="target-actions">
+          <button type="button" id="target-show-board">Show Board</button>
+          <button type="button" id="target-confirm" class="primary">Confirm</button>
+          <button type="button" id="target-cancel" class="pc-cancel">Cancel</button>
+        </div>
+      </div>
+      <button type="button" id="target-return" class="target-return" hidden>Return to pick</button>
+    </div>
+    <div class="overlay" id="account-overlay">
+      <div class="login-modal hi-frame account-modal">
+        <h2 id="account-title">Sign in</h2>
+        <p class="hint disclaimer" id="account-disclaimer">Unofficial fan-made table. Not affiliated with Bethesda Softworks or ZeniMax Online Studios. Not for sale.</p>
+        <p class="hint" id="account-status"></p>
+        <label class="account-field">Email
+          <input id="account-email" type="email" autocomplete="username" placeholder="you@example.com" />
+        </label>
+        <label class="account-field">Password
+          <input id="account-password" type="password" autocomplete="current-password" placeholder="At least 6 characters" />
+        </label>
+        <div class="account-actions">
+          <button type="button" class="primary" id="btn-auth-signin">Sign in</button>
+          <button type="button" id="btn-auth-signup">Sign up</button>
+        </div>
+        <div class="account-providers">
+          <button type="button" id="btn-auth-google">Google</button>
+          <button type="button" id="btn-auth-apple">Apple</button>
+        </div>
+        <label class="account-field">Phone
+          <input id="account-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+15551234567" />
+        </label>
+        <div class="account-actions">
+          <button type="button" id="btn-auth-phone">Send code</button>
+          <input id="account-sms" inputmode="numeric" maxlength="8" placeholder="SMS code" hidden />
+          <button type="button" id="btn-auth-sms" hidden>Confirm</button>
+        </div>
+        <p class="hint" id="account-provider-hint"></p>
+        <button type="button" class="primary" id="btn-auth-guest">Play as guest</button>
+        <button type="button" id="btn-auth-close">Close</button>
+      </div>
+    </div>
+    <audio id="voice-remote" autoplay playsinline hidden></audio>
+    <div class="toast" id="toast"></div>
+    <div id="tour-root" class="tour-root" hidden>
+      <div class="tour-backdrop" id="tour-backdrop"></div>
+      <div class="tour-hole" id="tour-hole" aria-hidden="true"></div>
+      <div class="tour-panel eso-hint" id="tour-panel">
+        <div class="tip-ornament"></div>
+        <div class="tour-step" id="tour-step">1 / 8</div>
+        <div id="tour-text"></div>
+        <div class="tip-nav">
+          <button type="button" id="tour-skip">Skip</button>
+          <button type="button" class="primary" id="tour-next">Next</button>
+        </div>
+      </div>
+    </div>
+    <div id="lift-layer" aria-hidden="true"></div>
+    <div class="overlay" id="patron-confirm-overlay">
+      <div class="patron-confirm" id="patron-confirm">
+        <img id="pc-art" alt="" />
+        <h3 id="pc-name">Patron</h3>
+        <div id="pc-states" class="pc-states"></div>
+        <div class="pc-actions">
+          <button class="pc-continue" id="pc-continue">Continue</button>
+          <button class="pc-cancel" id="pc-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal club-card-modal" id="card-modal">
+      <div class="modal-body" id="card-modal-body"></div>
+    </div>
+    <div class="modal club-sheet-modal" id="club-sheet">
+      <div class="club-sheet" role="dialog" aria-modal="true" aria-labelledby="club-sheet-title">
+        <button type="button" class="club-sheet-close" id="btn-club-sheet-close">Close</button>
+        <div id="club-sheet-body"></div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="js/app.js?v=49"></script>
+</body>
+</html>

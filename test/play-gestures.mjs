@@ -1,0 +1,362 @@
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import puppeteer from 'puppeteer-core';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const MIME = {
+  '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
+  '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg',
+  '.webp': 'image/webp', '.mp3': 'audio/mpeg', '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
+};
+
+function serve() {
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {
+      const url = decodeURIComponent((req.url || '/').split('?')[0]);
+      let file = path.join(root, url === '/' ? 'index.html' : url);
+      if (!file.startsWith(root)) { res.writeHead(403); res.end(); return; }
+      fs.readFile(file, (err, data) => {
+        if (err) { res.writeHead(404); res.end('no'); return; }
+        res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream' });
+        res.end(data);
+      });
+    });
+    server.listen(0, '127.0.0.1', () => resolve({ server, port: server.address().port }));
+  });
+}
+
+async function waitReady(page) {
+  await page.waitForFunction(() => window.__totTest, { timeout: 20000 });
+}
+
+async function start(page) {
+  await page.evaluate(() => window.__totTest.startQuick());
+  await page.waitForFunction(() => window.__totTest.snapshot().hand > 0, { timeout: 8000 });
+}
+
+async function snap(page) {
+  return page.evaluate(() => window.__totTest.snapshot());
+}
+
+function tapEvents(kind) {
+  if (kind === 'full') {
+    return `
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', isPrimary: true }));
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch', isPrimary: true }));
+      el.click();
+    `;
+  }
+  if (kind === 'ios') {
+    return `
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', isPrimary: true }));
+      el.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerType: 'touch', isPrimary: true }));
+      el.click();
+    `;
+  }
+  throw new Error(kind);
+}
+
+async function tapHand(page, kind, id = 'gold') {
+  return page.evaluate((src, want) => {
+    const el = document.querySelector(`#hand-zone .card[data-id="${want}"]`)
+      || document.querySelector('#hand-zone .card');
+    if (!el) return false;
+    eval(src);
+    return true;
+  }, tapEvents(kind), id);
+}
+
+async function tapPatron(page, kind, pid = 'pelin') {
+  return page.evaluate((src, want) => {
+    const el = document.querySelector(`#rail-patrons .patron-coin[data-pid="${want}"]`)
+      || document.querySelector('#rail-patrons .patron-coin[data-side="you"]');
+    if (!el) return false;
+    eval(src);
+    return true;
+  }, tapEvents(kind), pid);
+}
+
+async function holdPatron(page, pid = 'pelin') {
+  return page.evaluate(async (want) => {
+    const el = document.querySelector(`#rail-patrons .patron-coin[data-pid="${want}"]`)
+      || document.querySelector('#rail-patrons .patron-coin[data-side="you"]');
+    if (!el) return { ok: false };
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', isPrimary: true }));
+    await new Promise(r => setTimeout(r, 1250));
+    const mid = window.__totTest.snapshot();
+    const dossier = document.querySelector('.lift-text-fly')?.innerText || '';
+    el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch', isPrimary: true }));
+    el.click();
+    return { ok: true, mid, dossier };
+  }, pid);
+}
+
+async function holdHand(page) {
+  return page.evaluate(async () => {
+    const el = document.querySelector('#hand-zone .card');
+    if (!el) return false;
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', isPrimary: true }));
+    await new Promise(r => setTimeout(r, 1250));
+    el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch', isPrimary: true }));
+    el.click();
+    return true;
+  });
+}
+
+const fails = [];
+function assert(name, cond, extra) {
+  if (cond) console.log('PASS', name);
+  else {
+    console.error('FAIL', name, extra || '');
+    fails.push(name + (extra ? ' ' + JSON.stringify(extra) : ''));
+  }
+}
+
+const { server, port } = await serve();
+const browser = await puppeteer.launch({
+  executablePath: '/usr/bin/google-chrome',
+  headless: 'new',
+  args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+});
+const page = await browser.newPage();
+page.setDefaultTimeout(20000);
+page.on('pageerror', (e) => console.error('PAGEERROR', e.message));
+
+await page.goto(`http://127.0.0.1:${port}/?test=1`, { waitUntil: 'domcontentloaded' });
+await waitReady(page);
+
+// 1. full pointer cycle plays exactly one Gold
+await start(page);
+let a = await snap(page);
+assert('start has hand', a.hand >= 5, a);
+const golds0 = a.golds;
+const hand0 = a.hand;
+const coin0 = a.coin;
+await tapHand(page, 'full');
+await new Promise(r => setTimeout(r, 80));
+let b = await snap(page);
+assert('full tap plays one card', b.hand === hand0 - 1 && b.played >= 1, b);
+assert('full tap does not double-play', b.hand === hand0 - 1, b);
+assert('gold pays a coin', b.golds === golds0 - 1 && b.coin === coin0 + 1, b);
+assert('tap does not lift', b.liftActive === false && b.liftLayer === false, b);
+assert('combo rail shows card art', b.comboHexes >= 1, b);
+assert('draw pile paints a card back', a.pileBack === true && a.pileEmpty === false, a);
+assert('tavern sits near vertical center', a.tavernCenter === true, a);
+assert('gold tip is in-game sentence', /Gain 1 Coin/i.test(a.goldTip || ''), a.goldTip);
+assert('harvest is Draw 1 card', /Draw 1 card/i.test(a.harvestTip || ''), a.harvestTip);
+assert('treasury has no favor tip', a.treasuryHasTip === false, a.patrons);
+assert('no tavern discard pile', a.tavernDiscard === false, a);
+assert('no landscape-plays-better banner', a.landscapeBanner === false, a);
+assert('pointed patrons have a gothic tip', a.patrons.filter(p => p.id !== 'treasury' && p.id !== 'mora').every(p => p.tip && p.medallion), a.patrons);
+assert('patron tokens are coins not nameplates', a.woodPendants === 0 && a.coinRings >= 5, a);
+assert('empty agent seats stay thin', a.agentEmptyH > 0 && a.agentEmptyH <= 36 && a.agentsRowH <= 48, a);
+assert('sfx leave miss piles', a.actionsOverlapPile === false, a);
+assert('no mid-match hourglass toggle', a.midMatchHgToggle === false, a);
+assert('patron uses not in resource triad', a.resPatronTok === false && a.triadCount === 3, a);
+assert('patron uses sit on the rail', a.railPatronTok === true && a.youCallsOnRail === true, a);
+
+// 2. iOS click-only still plays
+await start(page);
+a = await snap(page);
+await tapHand(page, 'ios');
+await new Promise(r => setTimeout(r, 80));
+b = await snap(page);
+assert('ios click-only plays one card', b.hand === a.hand - 1 && b.coin === a.coin + 1, { a, b });
+
+// 3. hold inspects, does not play
+await start(page);
+a = await snap(page);
+await holdHand(page);
+await new Promise(r => setTimeout(r, 80));
+b = await snap(page);
+assert('hold does not play', b.hand === a.hand && b.coin === a.coin, { a, b });
+
+// 4. draw pile sealed
+await start(page);
+const toast = await page.evaluate(() => window.__totTest.clickDraw());
+assert('draw pile sealed', /sealed/i.test(toast), toast);
+const tavernToast = await page.evaluate(() => window.__totTest.clickTavernDeck());
+assert('tavern deck sealed', /sealed/i.test(tavernToast), tavernToast);
+
+// 5. patron tap opens confirm, not lift
+await start(page);
+await tapPatron(page, 'full', 'pelin');
+await new Promise(r => setTimeout(r, 80));
+b = await snap(page);
+assert('patron tap opens confirm', b.patronConfirm === true && b.liftActive === false, b);
+assert('patron modal shows three states', (b.patronStates || []).includes('favored') && (b.patronStates || []).includes('neutral') && (b.patronStates || []).includes('unfavored'), b.patronStates);
+assert('patrons clustered', b.clusterH > 0 && b.railH > 0 && b.clusterH < b.railH * 0.92, b);
+const sides = b.patrons.reduce((m, p) => { m[p.side] = (m[p.side] || 0) + 1; return m; }, {});
+assert('yours on your side', (sides.you || 0) === 2 && (sides.opp || 0) === 2 && (sides.mid || 0) === 1, b.patrons);
+assert('favor labels present', b.patrons.every(p => p.favor), b.patrons);
+await page.evaluate(() => document.querySelector('#pc-cancel')?.click());
+
+// 5b. Treasury sacrifice is interactive (no silent 2-coin burn)
+const treas = await page.evaluate(() => window.__totTest.startTreasuryTarget());
+assert('treasury opens targeting', !!(treas && treas.ok && treas.steps.includes('sacrifice')), treas);
+b = await snap(page);
+assert('treasury banner asks to sacrifice', b.targetBanner === true && /SACRIFICE/i.test(b.targetPrompt || ''), b);
+assert('treasury glows legal cards', b.legalGlow >= 1, b);
+const coinBefore = b.coin;
+await page.evaluate(() => document.querySelector('#target-cancel')?.click());
+b = await snap(page);
+assert('treasury cancel does not pay', b.coin === coinBefore && b.targeting === false, b);
+
+// 5c. Target-tray hold inspects, never picks; short tap picks; Confirm works
+await start(page);
+const repl = await page.evaluate(() => window.__totTest.startTargetStep({ kind: 'replace', n: 1 }));
+assert('replace tray opens', !!(repl && repl.ok && repl.tray >= 1 && /REPLACE/i.test(repl.prompt || '')), repl);
+const holdTray = await page.evaluate(async () => {
+  const el = document.querySelector('#target-tray .card') || document.querySelector('#target-tray .tray-card');
+  if (!el) return { ok: false };
+  const uid = el.dataset.uid;
+  const pickedBefore = window.__totTest.targetPicked();
+  el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: 12, clientY: 12 }));
+  await new Promise(r => setTimeout(r, 1250));
+  const mid = window.__totTest.snapshot();
+  const lift = document.querySelector('.lift-fly.lift-dossier-modal');
+  const banner = document.querySelector('#target-banner');
+  const z = {
+    lift: lift ? Number(getComputedStyle(lift).zIndex) || 0 : 0,
+    overlay: banner ? Number(getComputedStyle(banner).zIndex) || 0 : 0,
+  };
+  el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: 12, clientY: 12 }));
+  el.click();
+  const after = window.__totTest.snapshot();
+  return {
+    ok: true,
+    uid,
+    pickedBefore,
+    pickedMid: mid.targetPicked,
+    pickedAfter: after.targetPicked,
+    dossierOpen: mid.dossierOpen,
+    dossierName: mid.dossierName,
+    liftActive: mid.liftActive,
+    targetingMid: mid.targeting,
+    targetingAfter: after.targeting,
+    dossierAfter: after.dossierOpen,
+    z,
+    prompt: mid.targetPrompt,
+  };
+});
+assert('tray hold finds a card', holdTray.ok, holdTray);
+assert('tray hold opens dossier', !!(holdTray.dossierOpen && holdTray.liftActive && holdTray.dossierName), holdTray);
+assert('tray hold keeps targeting', holdTray.targetingMid === true, holdTray);
+assert('tray hold does not pick', (holdTray.pickedMid || []).length === (holdTray.pickedBefore || []).length, holdTray);
+assert('tray hold dossier is above the sheet', holdTray.z.lift > holdTray.z.overlay, holdTray.z);
+assert('tray hold-release does not pick', (holdTray.pickedAfter || []).length === 0 && holdTray.targetingAfter === true, holdTray);
+assert('tray hold-release closes dossier', holdTray.dossierAfter === false, holdTray);
+
+const tapTray = await page.evaluate(() => {
+  const el = document.querySelector('#target-tray .card') || document.querySelector('#target-tray .tray-card');
+  if (!el) return { ok: false };
+  const uid = el.dataset.uid;
+  el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 8, pointerType: 'touch', isPrimary: true, clientX: 12, clientY: 12 }));
+  el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 8, pointerType: 'touch', isPrimary: true, clientX: 12, clientY: 12 }));
+  el.click();
+  return { ok: true, uid, picked: window.__totTest.targetPicked(), selected: el.classList.contains('target-picked') };
+});
+assert('tray short tap picks', tapTray.ok && tapTray.picked.includes(tapTray.uid) && tapTray.selected, tapTray);
+await page.evaluate(() => window.__totTest.confirmTarget());
+await new Promise(r => setTimeout(r, 220));
+const afterConfirm = await page.evaluate(() => ({
+  targeting: window.__totTest.snapshot().targeting,
+  last: window.__totTest.lastTargetPicks(),
+}));
+assert('tray confirm closes targeting', afterConfirm.targeting === false, afterConfirm);
+assert('tray confirm keeps the pick', !!(afterConfirm.last && afterConfirm.last.replace && afterConfirm.last.replace.includes(tapTray.uid)), { last: afterConfirm.last, uid: tapTray.uid });
+
+// 5d. Board legal-target hold inspects without auto-confirming acquire
+await start(page);
+const acq = await page.evaluate(() => window.__totTest.startTargetStep({ kind: 'acquire', maxCost: 99 }));
+assert('acquire board session', !!(acq && acq.ok && acq.boardPick), acq);
+const holdBoard = await page.evaluate(async () => {
+  const el = document.querySelector('#tavern-zone .card.legal-target') || document.querySelector('#tavern-zone .card');
+  if (!el) return { ok: false };
+  el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 9, pointerType: 'touch', isPrimary: true, clientX: 12, clientY: 12 }));
+  await new Promise(r => setTimeout(r, 1250));
+  const mid = window.__totTest.snapshot();
+  el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 9, pointerType: 'touch', isPrimary: true, clientX: 12, clientY: 12 }));
+  return {
+    ok: true,
+    dossierOpen: mid.dossierOpen,
+    targeting: mid.targeting,
+    picked: mid.targetPicked,
+  };
+});
+assert('board hold inspects acquire target', !!(holdBoard.ok && holdBoard.dossierOpen), holdBoard);
+assert('board hold does not auto-confirm', holdBoard.targeting === true && (holdBoard.picked || []).length === 0, holdBoard);
+await page.evaluate(() => document.querySelector('#target-cancel')?.click());
+
+// 6. patron hold reads dossier, does not call
+const held = await holdPatron(page, 'pelin');
+assert('patron hold lifts', !!(held.mid && held.mid.liftActive), held);
+assert('patron hold shows favor text', /Favored|Neutral|Unfavored/i.test(held.dossier || ''), held.dossier);
+assert('patron hold does not open call', held.mid && held.mid.patronConfirm === false, held);
+assert('patron hold uses official sentences', /Refresh — Return|Gain 1 Coin|Draw 1 card|Cannot be used|Knock Out/i.test(held.dossier || ''), held.dossier);
+
+// 7. inspect: full hex + official Toll of Flesh sentences (portrait + landscape)
+async function assertInspect(page, label) {
+  const opened = await page.evaluate(() => window.__totTest.inspectById('toll-of-flesh'));
+  assert(`${label} inspect opens`, opened);
+  await new Promise((r) => setTimeout(r, 520));
+  const fit = await page.evaluate(() => window.__totTest.inspectFit());
+  assert(`${label} hex on screen`, fit.hexOn, { hex: fit.hex, vw: fit.vw, vh: fit.vh, metrics: fit.metrics });
+  assert(`${label} tooltip on screen`, fit.textOn, fit.text);
+  assert(`${label} name on screen`, fit.nameOn, fit.name);
+  assert(`${label} dossier modal`, fit.modal === true && fit.sheetOn !== false, fit.sheet);
+  assert(`${label} title not clipped`, fit.titleClipped !== true, fit.name);
+  assert(`${label} Gain 2 Coin`, /Gain 2 Coin/.test(fit.tipText || ''), fit.tipText);
+  assert(`${label} Draw 1 card`, /Draw 1 card/.test(fit.tipText || ''), fit.tipText);
+  assert(`${label} no token stub`, !/(?:^|\n)\s*2 Coin\./i.test(fit.tipText || '') && !/(?:^|\n)\s*Draw 1\.(?!\s*card)/i.test(fit.tipText || ''), fit.tipText);
+  await page.evaluate(() => {
+    document.querySelector('.lift-clone')?.remove();
+  });
+}
+
+const landPage = await browser.newPage();
+landPage.setDefaultTimeout(20000);
+await landPage.setViewport({ width: 844, height: 390, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+await landPage.goto(`http://127.0.0.1:${port}/?test=1`, { waitUntil: 'domcontentloaded' });
+await waitReady(landPage);
+await start(landPage);
+await assertInspect(landPage, 'landscape');
+await landPage.close();
+
+const portraitPage = await browser.newPage();
+portraitPage.setDefaultTimeout(20000);
+await portraitPage.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+await portraitPage.goto(`http://127.0.0.1:${port}/?test=1`, { waitUntil: 'domcontentloaded' });
+await waitReady(portraitPage);
+await start(portraitPage);
+await assertInspect(portraitPage, 'portrait');
+await portraitPage.close();
+
+const nativePage = await browser.newPage();
+nativePage.setDefaultTimeout(20000);
+await nativePage.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+await nativePage.goto(`http://127.0.0.1:${port}/?test=1&native=1`, { waitUntil: 'domcontentloaded' });
+await waitReady(nativePage);
+await start(nativePage);
+const nativeSnap = await snap(nativePage);
+assert('native shell is on', nativeSnap.nativeShell === true, nativeSnap);
+assert('no landscape banner on match', nativeSnap.landscapeBanner === false, nativeSnap);
+const nativeTipHidden = await nativePage.evaluate(() => {
+  const tip = document.querySelector('#landscape-tip');
+  if (!tip) return true;
+  const cs = getComputedStyle(tip);
+  return tip.hidden || cs.display === 'none' || !tip.textContent.trim();
+});
+assert('native tip not visible', nativeTipHidden);
+await nativePage.close();
+
+await browser.close();
+server.close();
+if (fails.length) {
+  console.error('\\n' + fails.length + ' failed:\\n' + fails.join('\\n'));
+  process.exit(1);
+}
+console.log('\\nAll gesture tests passed.');
