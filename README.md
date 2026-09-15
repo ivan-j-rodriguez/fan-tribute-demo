@@ -12,4 +12,4 @@ This repo is a **frozen public snapshot** for sharing feedback with friends. It 
 | Working site (changes often) | https://ivan-j-rodriguez.github.io/tales-of-tribute/ |
 | Working source | https://github.com/ivan-j-rodriguez/tales-of-tribute |
 
-Frozen from `tales-of-tribute` **main build 51** (`?v=51`) — includes DECK beside tavern, real card backs, patron spacing, Treasury as a true circle.
+Frozen from `tales-of-tribute` **main build 52** (`?v=52`) — landscape zoom-out + unclipped left piles; portrait packing from 51.
