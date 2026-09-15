@@ -12,4 +12,4 @@ This repo is a **frozen public snapshot** for sharing feedback with friends. It 
 | Working site (changes often) | https://ivan-j-rodriguez.github.io/tales-of-tribute/ |
 | Working source | https://github.com/ivan-j-rodriguez/tales-of-tribute |
 
-Frozen from `tales-of-tribute` **main build 53** (`?v=53`) — landscape SFX between DRAW and hand, hand zoom, cleaner inspect; portrait packing locked.
+Frozen from `tales-of-tribute` **main build 54** (`?v=54`) — exact in-game long-press inspect text + board landscape finish through 53.
