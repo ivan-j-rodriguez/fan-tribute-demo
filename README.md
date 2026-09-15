@@ -12,4 +12,4 @@ This repo is a **frozen public snapshot** for sharing feedback with friends. It 
 | Working site (changes often) | https://ivan-j-rodriguez.github.io/tales-of-tribute/ |
 | Working source | https://github.com/ivan-j-rodriguez/tales-of-tribute |
 
-Frozen from `tales-of-tribute` **main build 52** (`?v=52`) — landscape zoom-out + unclipped left piles; portrait packing from 51.
+Frozen from `tales-of-tribute` **main build 53** (`?v=53`) — landscape SFX between DRAW and hand, hand zoom, cleaner inspect; portrait packing locked.
